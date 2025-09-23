@@ -50,6 +50,9 @@ describe('TabBarController', () => {
     afterEach(() => {
         sinon.restore()
         clock.restore()
+        // Clean up JupyterLab environment variables
+        delete process.env.JUPYTER_LAB
+        delete process.env.IS_JUPYTER_LAB
         testFeatures.dispose()
     })
 
@@ -540,7 +543,7 @@ describe('TabBarController', () => {
             })
         })
 
-        it('should only load chats once', async () => {
+        it('should only load chats once in non-JupyterLab environments', async () => {
             const mockTabs = [{ historyId: 'history1', conversations: [{ messages: [] }] }] as unknown as Tab[]
             ;(chatHistoryDb.getOpenTabs as sinon.SinonStub).returns(mockTabs)
 
@@ -558,6 +561,22 @@ describe('TabBarController', () => {
                 languageServerVersion: testFeatures.runtime.serverInfo.version,
                 result: 'Succeeded',
             })
+        })
+
+        it('should allow multiple loads in JupyterLab environment', async () => {
+            // Set JupyterLab environment
+            process.env.JUPYTER_LAB = 'true'
+
+            const mockTabs = [{ historyId: 'history1', conversations: [{ messages: [] }] }] as unknown as Tab[]
+            ;(chatHistoryDb.getOpenTabs as sinon.SinonStub).returns(mockTabs)
+
+            const restoreTabStub = sinon.stub(tabBarController, 'restoreTab')
+
+            await tabBarController.loadChats()
+            await tabBarController.loadChats() // Second call should NOT be ignored in JupyterLab
+
+            sinon.assert.calledTwice(restoreTabStub)
+            sinon.assert.calledTwice(telemetryService.emitLoadHistory as sinon.SinonStub)
         })
     })
 })
