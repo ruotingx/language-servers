@@ -315,6 +315,11 @@ export class TabBarController {
     async loadChats() {
         const isJupyterLab = this.isJupyterLabEnvironment()
 
+        // Log statement to verify custom build is being used during testing
+        this.#features.logging.info(
+            `[JL_FIX_VERIFICATION] JupyterLab reload fix build loaded - isJupyterLab: ${isJupyterLab}`
+        )
+
         // For non-JupyterLab environments, prevent multiple loads
         if (!isJupyterLab && this.#loadedChats) {
             return
